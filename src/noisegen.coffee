@@ -25,12 +25,82 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ###
-class window.NoiseFactory
-  constructor: ->
-    @noise
-    @type
+# creates
+class window.NoiseGen
+  constructor: (context, type="brown")->
+    @userVolume = 1
+    @defaultfadeLength = 2
+    @bufferSize = 4096
 
-  create: (type)->
+    @context = context
+    @noiseFactory = NoiseFactory.create(type)
+    @audioProcessor = context.createScriptProcessor(@bufferSize, 1, 2)
+    @masterGain = context.createGain()
+    @channelMerger = @context.createChannelMerger()
+    @compressor = @context.createDynamicsCompressor()
+
+    return @init()
+
+  init: ->
+    @createProcessorLoop()
+    @audioProcessor.connect(@masterGain)
+
+  createProcessorLoop: ->
+    @audioProcessor.onaudioprocess = (e)->
+      outBufferL = e.outputBuffer.getChannelData(0)
+      outBufferR = e.outputBuffer.getChannelData(1)
+
+      i = 0
+      while i < @bufferSize
+        outBufferL[i] = @noiseFactory.update
+        outBufferR[i] = @noiseFactory.update
+        i++
+      return
+
+  #Public Methods
+  getNode: ->
+    return @masterGain
+
+  setVolume: (volume)->
+    @userVolume = volume
+    @setGain(volume)
+    null
+
+  mute: (bool)->
+    @setGain(0)
+    null
+
+  unmute: ->
+    @setGain(@userVolume)
+    null
+
+  fadeTo: (value, fadeLength)->
+    fadeLength = fadeLength || @defaultfadeLength
+    currentTime = @context.currentTime
+    #time the fade should complete
+    fadeTime = currentTime + fadeLength
+    #set the start time
+    @masterGain.gain.setValueAtTime(@userVolume, currentTime)
+    @masterGain.gain.linearRampToValueAtTime(value, fadeTime)
+
+  fadeOut: (fadeLength)->
+    fadeLength = fadeLength || @defaultfadeLength
+    @fadeTo(0, fadeLength)
+
+  fadeIn: (fadeLength)->
+    fadeLength = fadeLength || @defaultfadeLength
+    @fadeTo(@userVolume, fadeLength)
+
+  end: ->
+    @stop()
+
+# Noise Factory returns a the give type of noise generator.
+class NoiseFactory
+  # constructor: ->
+  #   @noise
+  #   @type
+
+  @create: (type)->
     if type == "white"
       noise = new WhiteNoise()
     else if type == "pink"
@@ -47,7 +117,7 @@ class Noise
     return "Not implemented"
 
   random: ->
-    Math.random() * 2 - 1 
+    Math.random() * 2 - 1
 
 
 class WhiteNoise extends Noise

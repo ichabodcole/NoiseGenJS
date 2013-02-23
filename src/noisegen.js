@@ -30,18 +30,99 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 (function() {
-  var BrownNoise, Noise, PinkNoise, WhiteNoise,
+  var BrownNoise, Noise, NoiseFactory, PinkNoise, WhiteNoise,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  window.NoiseFactory = (function() {
+  window.NoiseGen = (function() {
 
-    function NoiseFactory() {
-      this.noise;
-      this.type;
+    function NoiseGen(context, type) {
+      if (type == null) {
+        type = "brown";
+      }
+      this.userVolume = 1;
+      this.defaultfadeLength = 2;
+      this.bufferSize = 4096;
+      this.context = context;
+      this.noiseFactory = NoiseFactory.create(type);
+      this.audioProcessor = context.createScriptProcessor(this.bufferSize, 1, 2);
+      this.masterGain = context.createGain();
+      this.channelMerger = this.context.createChannelMerger();
+      this.compressor = this.context.createDynamicsCompressor();
+      return this.init();
     }
 
-    NoiseFactory.prototype.create = function(type) {
+    NoiseGen.prototype.init = function() {
+      this.createProcessorLoop();
+      return this.audioProcessor.connect(this.masterGain);
+    };
+
+    NoiseGen.prototype.createProcessorLoop = function() {
+      return this.audioProcessor.onaudioprocess = function(e) {
+        var i, outBufferL, outBufferR;
+        outBufferL = e.outputBuffer.getChannelData(0);
+        outBufferR = e.outputBuffer.getChannelData(1);
+        i = 0;
+        while (i < this.bufferSize) {
+          outBufferL[i] = this.noiseFactory.update;
+          outBufferR[i] = this.noiseFactory.update;
+          i++;
+        }
+      };
+    };
+
+    NoiseGen.prototype.getNode = function() {
+      return this.masterGain;
+    };
+
+    NoiseGen.prototype.setVolume = function(volume) {
+      this.userVolume = volume;
+      this.setGain(volume);
+      return null;
+    };
+
+    NoiseGen.prototype.mute = function(bool) {
+      this.setGain(0);
+      return null;
+    };
+
+    NoiseGen.prototype.unmute = function() {
+      this.setGain(this.userVolume);
+      return null;
+    };
+
+    NoiseGen.prototype.fadeTo = function(value, fadeLength) {
+      var currentTime, fadeTime;
+      fadeLength = fadeLength || this.defaultfadeLength;
+      currentTime = this.context.currentTime;
+      fadeTime = currentTime + fadeLength;
+      this.masterGain.gain.setValueAtTime(this.userVolume, currentTime);
+      return this.masterGain.gain.linearRampToValueAtTime(value, fadeTime);
+    };
+
+    NoiseGen.prototype.fadeOut = function(fadeLength) {
+      fadeLength = fadeLength || this.defaultfadeLength;
+      return this.fadeTo(0, fadeLength);
+    };
+
+    NoiseGen.prototype.fadeIn = function(fadeLength) {
+      fadeLength = fadeLength || this.defaultfadeLength;
+      return this.fadeTo(this.userVolume, fadeLength);
+    };
+
+    NoiseGen.prototype.end = function() {
+      return this.stop();
+    };
+
+    return NoiseGen;
+
+  })();
+
+  NoiseFactory = (function() {
+
+    function NoiseFactory() {}
+
+    NoiseFactory.create = function(type) {
       var noise;
       if (type === "white") {
         return noise = new WhiteNoise();
