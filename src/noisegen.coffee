@@ -25,37 +25,60 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ###
-# creates
 class window.NoiseGen
   constructor: (context, type="brown")->
+    @instanceCount = 0
     @userVolume = 1
     @defaultfadeLength = 2
     @bufferSize = 4096
 
     @context = context
-    @noiseFactory = NoiseFactory.create(type)
+    @noiseFactory   = NoiseFactory.create(type)
     @audioProcessor = context.createScriptProcessor(@bufferSize, 1, 2)
-    @masterGain = context.createGain()
-    @channelMerger = @context.createChannelMerger()
-    @compressor = @context.createDynamicsCompressor()
+    @masterGain     = context.createGain()
 
-    return @init()
+    @init()
 
   init: ->
+    # A unique namespace is created for the processor loop
+    # in the event there are multiple NoiseGens running at the same time.
+    @createProcessorNamespace()
     @createProcessorLoop()
     @audioProcessor.connect(@masterGain)
 
+  createProcessorNamespace: ->
+    baseName = "NoiseGen_audioprocess_0"
+    @namespace =  baseName + @instanceCount
+    # check if an object with the current namespace name exists
+    # if it already exists create a new namespace ending with a number
+    # one higher than the current namespace.
+    if typeof(window[@namespace]) != "undefined"
+      while window[@namespace]
+        @instanceCount++
+        @namespace = baseName + @instanceCount
+        # namespaces max out at 10 and then get overwritten for the sake
+        # of processor speed.
+        if @instanceCount >= 9 then break
+
   createProcessorLoop: ->
-    @audioProcessor.onaudioprocess = (e)->
+    # create a reference to this so we can pass it into
+    # the onaudioprocess event
+    self = this
+    # The onaudioprocess callback must be added to the global
+    # namespace or it won't get called.
+    @audioProcessor.onaudioprocess = window[@namespace] = (e)->
       outBufferL = e.outputBuffer.getChannelData(0)
       outBufferR = e.outputBuffer.getChannelData(1)
-
       i = 0
       while i < @bufferSize
-        outBufferL[i] = @noiseFactory.update
-        outBufferR[i] = @noiseFactory.update
+        outBufferL[i] = self.noiseFactory.update()
+        outBufferR[i] = self.noiseFactory.update()
         i++
-      return
+      return null
+    return null
+
+  setGain: (gain)->
+    @masterGain.gain.value = gain
 
   #Public Methods
   getNode: ->
@@ -111,6 +134,8 @@ class NoiseFactory
       console.log("Defaulting to Brown noise")
       noise = new BrownNoise()
 
+    return noise
+
 #Abstract Noise Class
 class Noise
   update: ->
@@ -141,8 +166,8 @@ class PinkNoise extends Noise
   constructor: ->
     @alpha = 1
     @poles = 5
-    @multipliers = zeroFill(new Array(), @poles)
-    @values      = zeroFill(new Array(), @poles)
+    @multipliers = @zeroFill([], @poles)
+    @values      = @zeroFill([], @poles)
     @fillArrays()
 
   fillArrays: ->
