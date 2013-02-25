@@ -33,7 +33,7 @@ class window.NoiseGen
     @bufferSize = 4096
 
     @context = context
-    @noiseFactory   = NoiseFactory.create(type)
+    @setNoiseType(type)
     @audioProcessor = context.createScriptProcessor(@bufferSize, 1, 2)
     @masterGain     = context.createGain()
 
@@ -45,6 +45,9 @@ class window.NoiseGen
     @createProcessorNamespace()
     @createProcessorLoop()
     @audioProcessor.connect(@masterGain)
+
+  setNoiseType: (type)->
+    @noise = NoiseFactory.create(type)
 
   createProcessorNamespace: ->
     baseName = "NoiseGen_audioprocess_0"
@@ -71,8 +74,8 @@ class window.NoiseGen
       outBufferR = e.outputBuffer.getChannelData(1)
       i = 0
       while i < @bufferSize
-        outBufferL[i] = self.noiseFactory.update()
-        outBufferR[i] = self.noiseFactory.update()
+        outBufferL[i] = self.noise.update()
+        outBufferR[i] = self.noise.update()
         i++
       return null
     return null
