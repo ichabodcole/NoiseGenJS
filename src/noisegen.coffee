@@ -43,8 +43,8 @@ class window.NoiseGen
     # A unique namespace is created for the processor loop
     # in the event there are multiple NoiseGens running at the same time.
     @createProcessorNamespace()
-    @createProcessorLoop()
     @audioProcessor.connect(@masterGain)
+    @audioProcessor.onaudioprocess = null
 
   setNoiseType: (type)->
     @noise = NoiseFactory.create(type)
@@ -79,6 +79,12 @@ class window.NoiseGen
         i++
       return null
     return null
+
+  stop: ->
+    @audioProcessor.onaudioprocess = null
+
+  start: ->
+    @createProcessorLoop()
 
   setGain: (gain)->
     @masterGain.gain.value = gain
