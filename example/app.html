@@ -2,9 +2,24 @@
 <html>
 <head>
     <title>NoiseGen-JS</title>
-
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <script src="bootstrap/js/jquery-1.9.1.min.js"></script>
+    <script src="bootstrap/js/bootstrap.min.js"></script>
 </head>
 <body>
+    <div class="hero-unit">
+    <h1>NoiseGenJS Demo</h1>
+        by Cole Reed
+        <h4>Choose your Noiseson</h4>
+        <div class="btn-group" data-toggle="buttons-radio">
+            <button id="btn-white" class="btn btn-primary">White</button>
+            <button id="btn-brown" class="btn btn-primary">Brown</button>
+            <button id="btn-pink" class="btn btn-primary">Pink</button>
+        </div>
+        <div>
+            <input id="sldr-volume" type="range" min="0" max="100" steps="1" value="50" />
+        </div>
+    </div>
     <script src="noisegen.js"></script>
     <script src="app.js"></script>
 </body>

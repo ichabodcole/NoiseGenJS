@@ -26,28 +26,25 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ###
 class window.NoiseGen
-  constructor: (context, type="brown")->
+  constructor: (context, @type="brown")->
     @instanceCount = 0
-    @userVolume = 1
+    @userVolume = 0.5
     @defaultfadeLength = 2
     @bufferSize = 4096
 
     @context = context
-    @setNoiseType(type)
     @audioProcessor = context.createScriptProcessor(@bufferSize, 1, 2)
     @masterGain     = context.createGain()
 
     @init()
 
   init: ->
+    @setNoiseType(@type)
     # A unique namespace is created for the processor loop
     # in the event there are multiple NoiseGens running at the same time.
     @createProcessorNamespace()
     @audioProcessor.connect(@masterGain)
-    @audioProcessor.onaudioprocess = null
-
-  setNoiseType: (type)->
-    @noise = NoiseFactory.create(type)
+    @setVolume(@userVolume)
 
   createProcessorNamespace: ->
     baseName = "NoiseGen_audioprocess_0"
@@ -80,18 +77,21 @@ class window.NoiseGen
       return null
     return null
 
-  stop: ->
-    @audioProcessor.onaudioprocess = null
-
-  start: ->
-    @createProcessorLoop()
-
   setGain: (gain)->
     @masterGain.gain.value = gain
 
   #Public Methods
+  start: ->
+    @createProcessorLoop()
+
+  stop: ->
+    @audioProcessor.onaudioprocess = window[@namespace] = null
+
   getNode: ->
     return @masterGain
+
+  setNoiseType: (@type)->
+    @noise = NoiseFactory.create(@type)
 
   setVolume: (volume)->
     @userVolume = volume
@@ -122,9 +122,6 @@ class window.NoiseGen
   fadeIn: (fadeLength)->
     fadeLength = fadeLength || @defaultfadeLength
     @fadeTo(@userVolume, fadeLength)
-
-  end: ->
-    @stop()
 
 # Noise Factory returns a the give type of noise generator.
 class NoiseFactory

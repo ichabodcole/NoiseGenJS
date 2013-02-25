@@ -37,24 +37,22 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   window.NoiseGen = (function() {
 
     function NoiseGen(context, type) {
-      if (type == null) {
-        type = "brown";
-      }
+      this.type = type != null ? type : "brown";
       this.instanceCount = 0;
-      this.userVolume = 1;
+      this.userVolume = 0.5;
       this.defaultfadeLength = 2;
       this.bufferSize = 4096;
       this.context = context;
-      this.noiseFactory = NoiseFactory.create(type);
       this.audioProcessor = context.createScriptProcessor(this.bufferSize, 1, 2);
       this.masterGain = context.createGain();
       this.init();
     }
 
     NoiseGen.prototype.init = function() {
+      this.setNoiseType(this.type);
       this.createProcessorNamespace();
-      this.createProcessorLoop();
-      return this.audioProcessor.connect(this.masterGain);
+      this.audioProcessor.connect(this.masterGain);
+      return this.setVolume(this.userVolume);
     };
 
     NoiseGen.prototype.createProcessorNamespace = function() {
@@ -85,8 +83,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         outBufferR = e.outputBuffer.getChannelData(1);
         i = 0;
         while (i < this.bufferSize) {
-          outBufferL[i] = self.noiseFactory.update();
-          outBufferR[i] = self.noiseFactory.update();
+          outBufferL[i] = self.noise.update();
+          outBufferR[i] = self.noise.update();
           i++;
         }
         return null;
@@ -98,8 +96,21 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       return this.masterGain.gain.value = gain;
     };
 
+    NoiseGen.prototype.start = function() {
+      return this.createProcessorLoop();
+    };
+
+    NoiseGen.prototype.stop = function() {
+      return this.audioProcessor.onaudioprocess = window[this.namespace] = null;
+    };
+
     NoiseGen.prototype.getNode = function() {
       return this.masterGain;
+    };
+
+    NoiseGen.prototype.setNoiseType = function(type) {
+      this.type = type;
+      return this.noise = NoiseFactory.create(this.type);
     };
 
     NoiseGen.prototype.setVolume = function(volume) {
@@ -135,10 +146,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     NoiseGen.prototype.fadeIn = function(fadeLength) {
       fadeLength = fadeLength || this.defaultfadeLength;
       return this.fadeTo(this.userVolume, fadeLength);
-    };
-
-    NoiseGen.prototype.end = function() {
-      return this.stop();
     };
 
     return NoiseGen;
