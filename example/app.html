@@ -3,6 +3,7 @@
 <head>
     <title>NoiseGen-JS</title>
     <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="bootstrap/css/custom_styles.css">
     <script src="bootstrap/js/jquery-1.9.1.min.js"></script>
     <script src="bootstrap/js/bootstrap.min.js"></script>
 </head>
@@ -17,8 +18,9 @@
                 <button id="btn-brown" class="btn btn-primary">Brown</button>
                 <button id="btn-pink" class="btn btn-primary">Pink</button>
             </div>
-            <div>
-                <input id="sldr-volume" type="range" min="0" max="100" steps="1" value="50" />
+            <div class="sliders">
+                <label for="sldr-volume">Volume</label>
+                <input class="slider" id="sldr-volume" type="range" min="0" max="100" steps="1" value="50" />
             </div>
         </div>
     </div>
