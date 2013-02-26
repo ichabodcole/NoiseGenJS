@@ -1,8 +1,7 @@
 NoiseGenJS
 ==========
 
-Library for generating random types of noise with the Web Audio API
-Currently includes White, Brown, and Pink noise types
+A Javascript/CoffeeScript library for generating several types of ambient noise using the Web Audio API. <a target="_blank" href="http://htmlpreview.github.com/?https://github.com/ichabodcole/NoiseGenJS/blob/master/example/app.html" title="NoiseGenJS Demo">DEMO</a>
 
 ### Basic Usage
     context = new webkitAudioContext()
