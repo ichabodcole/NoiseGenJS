@@ -1,6 +1,6 @@
 ###
 NoiseGenJS
-v1.0
+v1.1
 Author: Cole Reed
 ichabodcole (AT) gmail.com
 
@@ -25,30 +25,33 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ###
-class window.NoiseGen
-  constructor: (context, @type="brown")->
+class NoiseGen
+  constructor: (ctx, @type="brown")->
+    @input  = ctx.createGain()
+    @output = ctx.createGain()
+
     @instanceCount = 0
-    @userVolume = 0.5
-    @defaultfadeLength = 2
     @bufferSize = 4096
+    @baseName = "NoiseGen_audioprocess_0"
+    @namespace = null
+    @audioProcessor = null
 
-    @context = context
-    @audioProcessor = context.createScriptProcessor(@bufferSize, 1, 2)
-    @masterGain     = context.createGain()
-
-    @init()
-
-  init: ->
+    @_createInternalNodes(ctx)
+    @_routeNodes()
     @setNoiseType(@type)
     # A unique namespace is created for the processor loop
     # in the event there are multiple NoiseGens running at the same time.
-    @createProcessorNamespace()
-    @audioProcessor.connect(@masterGain)
-    @setVolume(@userVolume)
+    @_createProcessorNamespace()
 
-  createProcessorNamespace: ->
-    baseName = "NoiseGen_audioprocess_0"
-    @namespace =  baseName + @instanceCount
+  _createInternalNodes: (ctx)->
+    @audioProcessor = ctx.createScriptProcessor(@bufferSize, 1, 2)
+
+  _routeNodes: ->
+    @input.connect(@output)
+    @audioProcessor.connect(@output)
+
+  _createProcessorNamespace: ->
+    @namespace =  @baseName + @instanceCount
     # check if an object with the current namespace name exists
     # if it already exists create a new namespace ending with a number
     # one higher than the current namespace.
@@ -60,68 +63,38 @@ class window.NoiseGen
         # of processor speed.
         if @instanceCount >= 9 then break
 
-  createProcessorLoop: ->
+  _createProcessorLoop: ->
     # create a reference to this so we can pass it into
     # the onaudioprocess event
-    self = this
+    # self = @
     # The onaudioprocess callback must be added to the global
     # namespace or it won't get called.
-    @audioProcessor.onaudioprocess = window[@namespace] = (e)->
+    @audioProcessor.onaudioprocess = window[@namespace] = (e)=>
       outBufferL = e.outputBuffer.getChannelData(0)
       outBufferR = e.outputBuffer.getChannelData(1)
       i = 0
       while i < @bufferSize
-        outBufferL[i] = self.noise.update()
-        outBufferR[i] = self.noise.update()
+        outBufferL[i] = @noise.update()
+        outBufferR[i] = @noise.update()
         i++
       return null
     return null
 
-  setGain: (gain)->
-    @masterGain.gain.value = gain
-
   #Public Methods
   start: ->
-    @createProcessorLoop()
+    @_createProcessorLoop()
 
   stop: ->
     @audioProcessor.onaudioprocess = window[@namespace] = null
 
-  getNode: ->
-    return @masterGain
+  connect: (dest)->
+    @output.connect(if dest.input then dest.input else dest)
+
+  disconnect: ->
+    @output.disconnect()
 
   setNoiseType: (@type)->
     @noise = NoiseFactory.create(@type)
-
-  setVolume: (volume)->
-    @userVolume = volume
-    @setGain(volume)
-    null
-
-  mute: (bool)->
-    @setGain(0)
-    null
-
-  unmute: ->
-    @setGain(@userVolume)
-    null
-
-  fadeTo: (value, fadeLength)->
-    fadeLength = fadeLength || @defaultfadeLength
-    currentTime = @context.currentTime
-    #time the fade should complete
-    fadeTime = currentTime + fadeLength
-    #set the start time
-    @masterGain.gain.setValueAtTime(@userVolume, currentTime)
-    @masterGain.gain.linearRampToValueAtTime(value, fadeTime)
-
-  fadeOut: (fadeLength)->
-    fadeLength = fadeLength || @defaultfadeLength
-    @fadeTo(0, fadeLength)
-
-  fadeIn: (fadeLength)->
-    fadeLength = fadeLength || @defaultfadeLength
-    @fadeTo(@userVolume, fadeLength)
 
 # Noise Factory returns a the give type of noise generator.
 class NoiseFactory
@@ -198,3 +171,11 @@ class PinkNoise extends Noise
     @values.unshift(x)
     @values.pop()
     return x * 0.5
+
+# Setup AMD or global object
+if typeof define == 'function' && define.amd
+  define ->
+    return NoiseGen
+else
+  if typeof window == "object" && typeof window.document == "object"
+    window.NoiseGen = NoiseGen
