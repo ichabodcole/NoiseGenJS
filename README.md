@@ -27,3 +27,9 @@ A Javascript/CoffeeScript library for generating several types of ambient noise 
 
     // Finally
     noiseGen.start()
+
+    // If you no longer need a noiseGen object call the "remove" method before deleting the instance.
+    noiseGen.remove()
+    delete noiseGen
+
+In addition to standard script linking, NoiseGen is AMD compliant and works great with requirejs.

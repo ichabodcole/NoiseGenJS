@@ -1,14 +1,17 @@
 {
   "name": "noisegen",
-  "version": "0.1.1",
-  "description": "Library for creating random noise types using the Web Audio API.",
+  "version": "0.2.0",
+  "description": "Library for creating ambient types of noise using the Web Audio API.",
   "main": "dist/noisegen.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ichabodcole/NoiseGenJS.git"
+  },
   "keywords": [
-    "fun"
+    "noise, audio, sound"
   ],
   "author": "Cole",
   "license": "MIT",
