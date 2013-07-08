@@ -1,5 +1,6 @@
 context = new webkitAudioContext()
 noiseGen = new NoiseGen(context, "white")
+
 gain = context.createGain()
 
 noiseGen.connect(gain)
@@ -26,4 +27,5 @@ $("#sldr-volume").change (e)->
     gain.gain.value = volume / 100
 
 $("#sldr-volume").change()
+
 
