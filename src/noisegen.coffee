@@ -1,6 +1,6 @@
 ###
 NoiseGenJS
-v1.1
+v0.2.0
 Author: Cole Reed
 ichabodcole (AT) gmail.com
 
@@ -32,44 +32,42 @@ class NoiseGen
 
     @instanceCount = 0
     @bufferSize = 4096
-    @baseName = "NoiseGen_audioprocess_0"
-    @namespace = null
     @audioProcessor = null
+    @noise = null
 
     @_createInternalNodes(ctx)
     @_routeNodes()
     @setNoiseType(@type)
-    # A unique namespace is created for the processor loop
-    # in the event there are multiple NoiseGens running at the same time.
-    @_createProcessorNamespace()
 
   _createInternalNodes: (ctx)->
-    @audioProcessor = ctx.createScriptProcessor(@bufferSize, 1, 2)
+    @audioProcessor = @_storeProcessor(ctx.createScriptProcessor(@bufferSize, 1, 2))
 
   _routeNodes: ->
     @input.connect(@output)
     @audioProcessor.connect(@output)
 
-  _createProcessorNamespace: ->
-    @namespace =  @baseName + @instanceCount
-    # check if an object with the current namespace name exists
-    # if it already exists create a new namespace ending with a number
-    # one higher than the current namespace.
-    if typeof(window[@namespace]) != "undefined"
-      while window[@namespace]
-        @instanceCount++
-        @namespace = baseName + @instanceCount
-        # namespaces max out at 10 and then get overwritten for the sake
-        # of processor speed.
-        if @instanceCount >= 9 then break
+  # Create an array attached to the global obect.
+  # The ScripProcessor must be added to the global object or it will
+  # get get garbage collected to soon.
+  _getProcessorIndex: ->
+    window.NoiseGenProcessors = window.NoiseGenProcessors ? []
+
+  # Store the processor node in the global processor array.
+  _storeProcessor: (node)->
+    pIndex = @_getProcessorIndex()
+    node.id = pIndex.length
+    pIndex[node.id] = node
+    return node
+
+  # Remove the processor node from the global processor array.
+  _removeProcessor: (node)->
+    pIndex = @_getProcessorIndex()
+    delete pIndex[node.id]
+    pIndex.splice(node.id, 1)
+    return node
 
   _createProcessorLoop: ->
-    # create a reference to this so we can pass it into
-    # the onaudioprocess event
-    # self = @
-    # The onaudioprocess callback must be added to the global
-    # namespace or it won't get called.
-    @audioProcessor.onaudioprocess = window[@namespace] = (e)=>
+    @audioProcessor.onaudioprocess = (e)=>
       outBufferL = e.outputBuffer.getChannelData(0)
       outBufferR = e.outputBuffer.getChannelData(1)
       i = 0
@@ -85,7 +83,10 @@ class NoiseGen
     @_createProcessorLoop()
 
   stop: ->
-    @audioProcessor.onaudioprocess = window[@namespace] = null
+    @audioProcessor.onaudioprocess = null
+
+  remove: ->
+    @_removeProcessor(@audioProcessor)
 
   connect: (dest)->
     @output.connect(if dest.input then dest.input else dest)
@@ -110,7 +111,6 @@ class NoiseFactory
     else if type == "brown"
       noise = new BrownNoise()
     else
-      console.log("Defaulting to Brown noise")
       noise = new BrownNoise()
 
     return noise

@@ -1,6 +1,6 @@
 /*
 NoiseGenJS
-v1.1
+v0.2.0
 Author: Cole Reed
 ichabodcole (AT) gmail.com
 
@@ -39,17 +39,15 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       this.output = ctx.createGain();
       this.instanceCount = 0;
       this.bufferSize = 4096;
-      this.baseName = "NoiseGen_audioprocess_0";
-      this.namespace = null;
       this.audioProcessor = null;
+      this.noise = null;
       this._createInternalNodes(ctx);
       this._routeNodes();
       this.setNoiseType(this.type);
-      this._createProcessorNamespace();
     }
 
     NoiseGen.prototype._createInternalNodes = function(ctx) {
-      return this.audioProcessor = ctx.createScriptProcessor(this.bufferSize, 1, 2);
+      return this.audioProcessor = this._storeProcessor(ctx.createScriptProcessor(this.bufferSize, 1, 2));
     };
 
     NoiseGen.prototype._routeNodes = function() {
@@ -57,27 +55,30 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       return this.audioProcessor.connect(this.output);
     };
 
-    NoiseGen.prototype._createProcessorNamespace = function() {
-      var _results;
-      this.namespace = this.baseName + this.instanceCount;
-      if (typeof window[this.namespace] !== "undefined") {
-        _results = [];
-        while (window[this.namespace]) {
-          this.instanceCount++;
-          this.namespace = baseName + this.instanceCount;
-          if (this.instanceCount >= 9) {
-            break;
-          } else {
-            _results.push(void 0);
-          }
-        }
-        return _results;
-      }
+    NoiseGen.prototype._getProcessorIndex = function() {
+      var _ref;
+      return window.NoiseGenProcessors = (_ref = window.NoiseGenProcessors) != null ? _ref : [];
+    };
+
+    NoiseGen.prototype._storeProcessor = function(node) {
+      var pIndex;
+      pIndex = this._getProcessorIndex();
+      node.id = pIndex.length;
+      pIndex[node.id] = node;
+      return node;
+    };
+
+    NoiseGen.prototype._removeProcessor = function(node) {
+      var pIndex;
+      pIndex = this._getProcessorIndex();
+      delete pIndex[node.id];
+      pIndex.splice(node.id, 1);
+      return node;
     };
 
     NoiseGen.prototype._createProcessorLoop = function() {
       var _this = this;
-      this.audioProcessor.onaudioprocess = window[this.namespace] = function(e) {
+      this.audioProcessor.onaudioprocess = function(e) {
         var i, outBufferL, outBufferR;
         outBufferL = e.outputBuffer.getChannelData(0);
         outBufferR = e.outputBuffer.getChannelData(1);
@@ -97,7 +98,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     };
 
     NoiseGen.prototype.stop = function() {
-      return this.audioProcessor.onaudioprocess = window[this.namespace] = null;
+      return this.audioProcessor.onaudioprocess = null;
+    };
+
+    NoiseGen.prototype.remove = function() {
+      return this._removeProcessor(this.audioProcessor);
     };
 
     NoiseGen.prototype.connect = function(dest) {
@@ -129,7 +134,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       } else if (type === "brown") {
         noise = new BrownNoise();
       } else {
-        console.log("Defaulting to Brown noise");
         noise = new BrownNoise();
       }
       return noise;
