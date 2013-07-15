@@ -24,8 +24,8 @@ describe "NoiseGen", ->
     it 'should have an output property of type AudioNode', ->
       expect(allen.isAudioNode(@noiseGen.output)).to.equal(true)
 
-    it 'should have a type property defaulted to "brown"', ->
-      expect(@noiseGen.type).to.equal('brown')
+    it 'should have a noiseType property defaulted to "brown"', ->
+      expect(@noiseGen.noiseType).to.equal('brown')
 
   describe 'start', ->
     it 'should have a start method', ->
@@ -63,7 +63,7 @@ describe "NoiseGen", ->
   describe 'setNoiseType', ->
     it 'should change the noise type', ->
       @noiseGen.setNoiseType('white')
-      expect(@noiseGen.type).to.equal 'white'
+      expect(@noiseGen.noiseType).to.equal 'white'
 
     # This test is actually hitting the NoiseFactory and PinkNoise class
     # Ideally these should be tested separately...

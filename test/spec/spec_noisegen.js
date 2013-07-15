@@ -25,8 +25,8 @@
       it('should have an output property of type AudioNode', function() {
         return expect(allen.isAudioNode(this.noiseGen.output)).to.equal(true);
       });
-      return it('should have a type property defaulted to "brown"', function() {
-        return expect(this.noiseGen.type).to.equal('brown');
+      return it('should have a noiseType property defaulted to "brown"', function() {
+        return expect(this.noiseGen.noiseType).to.equal('brown');
       });
     });
     describe('start', function() {
@@ -77,7 +77,7 @@
     return describe('setNoiseType', function() {
       it('should change the noise type', function() {
         this.noiseGen.setNoiseType('white');
-        return expect(this.noiseGen.type).to.equal('white');
+        return expect(this.noiseGen.noiseType).to.equal('white');
       });
       return it('should create a new noise object with an update method', function() {
         var update,
