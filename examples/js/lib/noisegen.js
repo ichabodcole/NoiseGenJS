@@ -1,6 +1,6 @@
 /*
 NoiseGenJS
-v0.2.0
+v0.2.1
 Author: Cole Reed
 ichabodcole (AT) gmail.com
 
@@ -28,22 +28,36 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 (function() {
-  var BrownNoise, Noise, NoiseFactory, NoiseGen, PinkNoise, WhiteNoise, _ref,
+  var BrownNoise, Noise, NoiseFactory, NoiseGen, PinkNoise, Silence, WhiteNoise, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   NoiseGen = (function() {
-    function NoiseGen(ctx, type) {
-      this.type = type != null ? type : "brown";
+    NoiseGen.STOPPED = 0;
+
+    NoiseGen.PLAYING = 1;
+
+    NoiseGen.WHITE_NOISE = "white";
+
+    NoiseGen.BROWN_NOISE = "brown";
+
+    NoiseGen.PINK_NOISE = "pink";
+
+    NoiseGen.SILENCE = "silence";
+
+    function NoiseGen(ctx, noiseType) {
+      this.noiseType = noiseType != null ? noiseType : NoiseGen.BROWN_NOISE;
       this.input = ctx.createGain();
       this.output = ctx.createGain();
       this.instanceCount = 0;
       this.bufferSize = 4096;
       this.audioProcessor = null;
       this.noise = null;
+      this.state = this.STOPPED;
+      this.timeout = null;
+      this.bufferTimeout = 250;
       this._createInternalNodes(ctx);
       this._routeNodes();
-      this.setNoiseType(this.type);
     }
 
     NoiseGen.prototype._createInternalNodes = function(ctx) {
@@ -51,8 +65,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     };
 
     NoiseGen.prototype._routeNodes = function() {
-      this.input.connect(this.output);
-      return this.audioProcessor.connect(this.output);
+      return this.input.connect(this.output);
     };
 
     NoiseGen.prototype._getProcessorIndex = function() {
@@ -93,12 +106,41 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       return null;
     };
 
+    NoiseGen.prototype._setNoiseGenerator = function(noiseType) {
+      return this.noise = NoiseFactory.create(noiseType);
+    };
+
+    NoiseGen.prototype._createProcessorTimeout = function() {
+      var _this = this;
+      return this.timeout = setTimeout(function() {
+        if (_this.state === _this.STOPPED) {
+          return _this.audioProcessor.disconnect();
+        }
+      }, this.bufferTimeout);
+    };
+
+    NoiseGen.prototype._clearProcessorTimeout = function() {
+      if (this.timeout !== null) {
+        return clearTimeout(this.timeout);
+      }
+    };
+
     NoiseGen.prototype.start = function() {
-      return this._createProcessorLoop();
+      if (this.state === this.STOPPED) {
+        this._clearProcessorTimeout();
+        this._setNoiseGenerator(this.noiseType);
+        this._createProcessorLoop();
+        this.audioProcessor.connect(this.output);
+        return this.state = this.PLAYING;
+      }
     };
 
     NoiseGen.prototype.stop = function() {
-      return this.audioProcessor.onaudioprocess = null;
+      if (this.state === this.PLAYING) {
+        this._setNoiseGenerator(NoiseGen.SILENCE);
+        this._createProcessorTimeout();
+        return this.state = this.STOPPED;
+      }
     };
 
     NoiseGen.prototype.remove = function() {
@@ -113,9 +155,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       return this.output.disconnect();
     };
 
-    NoiseGen.prototype.setNoiseType = function(type) {
-      this.type = type;
-      return this.noise = NoiseFactory.create(this.type);
+    NoiseGen.prototype.setNoiseType = function(noiseType) {
+      this.noiseType = noiseType;
+      return this._setNoiseGenerator(this.noiseType);
     };
 
     return NoiseGen;
@@ -127,15 +169,20 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
     NoiseFactory.create = function(type) {
       var noise;
-      if (type === "white") {
-        noise = new WhiteNoise();
-      } else if (type === "pink") {
-        noise = new PinkNoise();
-      } else if (type === "brown") {
-        noise = new BrownNoise();
-      } else {
-        noise = new BrownNoise();
-      }
+      noise = (function() {
+        switch (type) {
+          case NoiseGen.WHITE_NOISE:
+            return new WhiteNoise();
+          case NoiseGen.PINK_NOISE:
+            return new PinkNoise();
+          case NoiseGen.BROWN_NOISE:
+            return new BrownNoise();
+          case NoiseGen.SILENCE:
+            return new Silence();
+          default:
+            return new BrownNoise();
+        }
+      })();
       return noise;
     };
 
@@ -158,12 +205,28 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
   })();
 
+  Silence = (function(_super) {
+    __extends(Silence, _super);
+
+    function Silence() {
+      _ref = Silence.__super__.constructor.apply(this, arguments);
+      return _ref;
+    }
+
+    Silence.prototype.update = function() {
+      return 0;
+    };
+
+    return Silence;
+
+  })(Noise);
+
   WhiteNoise = (function(_super) {
     __extends(WhiteNoise, _super);
 
     function WhiteNoise() {
-      _ref = WhiteNoise.__super__.constructor.apply(this, arguments);
-      return _ref;
+      _ref1 = WhiteNoise.__super__.constructor.apply(this, arguments);
+      return _ref1;
     }
 
     WhiteNoise.prototype.update = function() {
@@ -207,18 +270,18 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     }
 
     PinkNoise.prototype.fillArrays = function() {
-      var a, i, _i, _j, _len, _len1, _ref1, _ref2, _results;
+      var a, i, _i, _j, _len, _len1, _ref2, _ref3, _results;
       a = 1;
-      _ref1 = this.poles;
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        i = _ref1[_i];
+      _ref2 = this.poles;
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        i = _ref2[_i];
         a = (i - this.alpha / 2) * a / (i + 1);
         this.multipliers[i] = a;
       }
-      _ref2 = this.poles * 5;
+      _ref3 = this.poles * 5;
       _results = [];
-      for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
-        i = _ref2[_j];
+      for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
+        i = _ref3[_j];
         _results.push(this.update());
       }
       return _results;
@@ -235,11 +298,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     };
 
     PinkNoise.prototype.update = function() {
-      var i, x, _i, _len, _ref1;
+      var i, x, _i, _len, _ref2;
       x = this.random() * 1;
-      _ref1 = this.poles;
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        i = _ref1[_i];
+      _ref2 = this.poles;
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        i = _ref2[_i];
         x -= this.multipliers[i] * this.values[i];
       }
       this.values.unshift(x);

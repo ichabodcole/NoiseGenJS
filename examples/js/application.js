@@ -38,6 +38,14 @@
     return gain.gain.value = volume / 100;
   });
 
+  $("#btn-start").click(function() {
+    return noiseGen.start();
+  });
+
+  $("#btn-stop").click(function() {
+    return noiseGen.stop();
+  });
+
   $("#sldr-volume").change();
 
 }).call(this);
