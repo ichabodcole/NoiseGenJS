@@ -1,6 +1,6 @@
 {
-  "name": "noisegen",
-  "version": "0.2.1",
+  "name": "noisegenjs",
+  "version": "0.2.2",
   "author": "Cole Reed",
   "license": "MIT",
   "description": "Library for creating ambient types of noise using the Web Audio API.",

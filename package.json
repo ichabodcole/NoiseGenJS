@@ -1,9 +1,10 @@
 {
-  "name": "noisegen",
-  "version": "0.2.1",
+  "name": "noisegenjs",
+  "version": "0.2.2",
   "author": "Cole Reed",
   "license": "MIT",
   "description": "Library for creating ambient types of noise using the Web Audio API.",
+  "filename": "noisegen",
   "main": "dist/noisegen.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
