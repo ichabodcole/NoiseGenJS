@@ -1,6 +1,6 @@
 ###
 NoiseGenJS
-v0.2.0
+v0.2.1
 Author: Cole Reed
 ichabodcole (AT) gmail.com
 
@@ -26,7 +26,15 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ###
 class NoiseGen
-  constructor: (ctx, @type="brown")->
+  @STOPPED = 0
+  @PLAYING = 1
+
+  @WHITE_NOISE = "white"
+  @BROWN_NOISE = "brown"
+  @PINK_NOISE  = "pink"
+  @SILENCE     = "silence"
+
+  constructor: (ctx, @noiseType=NoiseGen.BROWN_NOISE)->
     @input  = ctx.createGain()
     @output = ctx.createGain()
 
@@ -34,17 +42,18 @@ class NoiseGen
     @bufferSize = 4096
     @audioProcessor = null
     @noise = null
+    @state = @STOPPED
+    @timeout = null
+    @bufferTimeout = 250
 
     @_createInternalNodes(ctx)
     @_routeNodes()
-    @setNoiseType(@type)
 
   _createInternalNodes: (ctx)->
     @audioProcessor = @_storeProcessor(ctx.createScriptProcessor(@bufferSize, 1, 2))
 
   _routeNodes: ->
     @input.connect(@output)
-    @audioProcessor.connect(@output)
 
   # Create an array attached to the global obect.
   # The ScripProcessor must be added to the global object or it will
@@ -78,12 +87,35 @@ class NoiseGen
       return null
     return null
 
+  _setNoiseGenerator: (noiseType)->
+    @noise = NoiseFactory.create(noiseType)
+
+  # We create a small delay between the stop method call and the disconnect to
+  # allow time for the audio buffer to fill will silence
+  _createProcessorTimeout: ->
+    @timeout = setTimeout =>
+      if @state == @STOPPED
+        @audioProcessor.disconnect()
+    , @bufferTimeout
+
+  _clearProcessorTimeout: ->
+    if @timeout != null
+      clearTimeout(@timeout)
+
   #Public Methods
   start: ->
-    @_createProcessorLoop()
+    if @state == @STOPPED
+      @_clearProcessorTimeout()
+      @_setNoiseGenerator(@noiseType)
+      @_createProcessorLoop()
+      @audioProcessor.connect(@output)
+      @state = @PLAYING
 
   stop: ->
-    @audioProcessor.onaudioprocess = null
+    if @state == @PLAYING
+      @_setNoiseGenerator(NoiseGen.SILENCE)
+      @_createProcessorTimeout()
+      @state = @STOPPED
 
   remove: ->
     @_removeProcessor(@audioProcessor)
@@ -94,24 +126,24 @@ class NoiseGen
   disconnect: ->
     @output.disconnect()
 
-  setNoiseType: (@type)->
-    @noise = NoiseFactory.create(@type)
+  setNoiseType: (@noiseType)->
+    @_setNoiseGenerator(@noiseType)
 
 # Noise Factory returns a the give type of noise generator.
 class NoiseFactory
-  # constructor: ->
-  #   @noise
-  #   @type
 
   @create: (type)->
-    if type == "white"
-      noise = new WhiteNoise()
-    else if type == "pink"
-      noise = new PinkNoise()
-    else if type == "brown"
-      noise = new BrownNoise()
-    else
-      noise = new BrownNoise()
+    noise = switch type
+      when NoiseGen.WHITE_NOISE
+        new WhiteNoise()
+      when NoiseGen.PINK_NOISE
+        new PinkNoise()
+      when NoiseGen.BROWN_NOISE
+        new BrownNoise()
+      when NoiseGen.SILENCE
+        new Silence()
+      else
+        new BrownNoise()
 
     return noise
 
@@ -122,6 +154,10 @@ class Noise
 
   random: ->
     Math.random() * 2 - 1
+
+class Silence extends Noise
+  update: ->
+    return 0
 
 
 class WhiteNoise extends Noise
