@@ -1,9 +1,9 @@
 {
   "name": "noisegen",
-  "version": "0.2.0",
-  "description": "Library for creating ambient types of noise using the Web Audio API.",
+  "version": "0.2.1",
   "author": "Cole Reed",
   "license": "MIT",
+  "description": "Library for creating ambient types of noise using the Web Audio API.",
   "main": "dist/noisegen.js",
   "homepage": "https://github.com/ichabodcole/NoiseGenJS",
   "repository": "git://github.com/ichabodcole/NoiseGenJS.git",
@@ -13,6 +13,6 @@
     "components"
   ],
   "keywords": [
-    "audio", "sound", "meditation", "brain"
+    "audio", "sound", "meditation", "brain", "noise"
   ]
 }
