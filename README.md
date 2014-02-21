@@ -2,6 +2,8 @@ NoiseGenJS
 ==========
 
 A Javascript/CoffeeScript library for generating several types of ambient noise using the Web Audio API. <a target="_blank" href="http://htmlpreview.github.com/?https://github.com/ichabodcole/NoiseGenJS/blob/master/examples/index.html" title="NoiseGenJS Demo">DEMO</a>
+### Installation
+    bower install noisegenjs
 
 ### Basic Usage
     // Create a new AudioContext to connect to
@@ -18,7 +20,7 @@ A Javascript/CoffeeScript library for generating several types of ambient noise 
 
     // Connect to the NoiseGen node to the gain node
     noiseGen.connect(volume)
-    
+
     // Connect the gain node to the context output.
     volume.connect(context.destination)
 
