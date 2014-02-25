@@ -13,7 +13,7 @@ A Javascript/CoffeeScript library for generating several types of ambient noise 
     noiseGen = new NoiseGen(context, [noiseType="brown", "white", "pink"])
 
     // Change the noise type.
-    noiseGen.setType("pink")
+    noiseGen.setNoiseType("pink")
 
     // Create a new gain node to control volume
     var volume = context.createGain();
@@ -30,8 +30,12 @@ A Javascript/CoffeeScript library for generating several types of ambient noise 
     // Finally
     noiseGen.start()
 
+    // You can also silence playback by calling stop.
+    noiseGen.stop()
+
     // If you no longer need a noiseGen object call the "remove" method before deleting the instance.
     noiseGen.remove()
     delete noiseGen
+
 
 In addition to standard script linking, NoiseGen is AMD compliant and works great with requirejs.
